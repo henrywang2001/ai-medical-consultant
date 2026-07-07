@@ -21,9 +21,19 @@
         </div>
       </div>
       <div class="chat-header-actions">
-        <el-button circle class="header-action-btn">
-          <el-icon :size="18"><MoreFilled /></el-icon>
-        </el-button>
+        <el-dropdown trigger="click" @command="handleMenuCommand">
+          <el-button circle class="header-action-btn">
+            <el-icon :size="18"><MoreFilled /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="end" :disabled="consultation?.status === 'completed'">
+                <el-icon><CircleCheck /></el-icon>
+                {{ consultation?.status === 'completed' ? '已结束' : '结束问诊' }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </header>
 
@@ -107,8 +117,14 @@
       </div>
     </main>
 
+    <!-- Completed Banner -->
+    <div v-if="consultation?.status === 'completed'" class="completed-banner">
+      <el-icon :size="18"><CircleCheck /></el-icon>
+      <span>本次问诊已结束，您可以返回首页查看历史记录</span>
+    </div>
+
     <!-- Input Area -->
-    <footer class="chat-footer">
+    <footer class="chat-footer" v-if="consultation?.status !== 'completed'">
       <div class="input-wrapper">
         <button class="voice-btn" title="语音输入">
           <el-icon :size="20"><Microphone /></el-icon>
@@ -140,7 +156,8 @@ import { ref, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useConsultStore } from '../stores/useConsultStore'
 import { useUserStore } from '../stores/useUserStore'
-import { ArrowLeft, MoreFilled, Promotion, Microphone, ColdDrink, KnifeFork, Moon } from '@element-plus/icons-vue'
+import { ArrowLeft, MoreFilled, Promotion, Microphone, ColdDrink, KnifeFork, Moon, CircleCheck } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import MarkdownIt from 'markdown-it'
 
 const route = useRoute()
@@ -148,6 +165,7 @@ const consultStore = useConsultStore()
 const userStore = useUserStore()
 
 const messages = ref([])
+const consultation = ref(null)
 const inputText = ref('')
 const streaming = ref(false)
 const streamText = ref('')
@@ -160,6 +178,7 @@ const md = new MarkdownIt({ breaks: true, html: true })
 onMounted(async () => {
   const id = route.params.id
   await consultStore.fetchConsultation(id)
+  consultation.value = consultStore.currentConsultation
   messages.value = consultStore.messages.map(m => ({
     ...m,
     metadata: m.metadata_json,
@@ -271,6 +290,23 @@ function scrollToBottom() {
 function urgencyText(urgency) {
   const map = { normal: '正常', urgent: '建议尽快就医', emergency: '紧急！立即就医' }
   return map[urgency] || ''
+}
+
+async function handleMenuCommand(command) {
+  if (command === 'end') {
+    try {
+      await ElMessageBox.confirm(
+        '结束后将无法继续发送消息，确定要结束本次问诊吗？',
+        '结束问诊',
+        { confirmButtonText: '确定结束', cancelButtonText: '取消', type: 'warning' }
+      )
+      await consultStore.completeConsultation(route.params.id)
+      consultation.value = { ...consultation.value, status: 'completed' }
+      ElMessage.success('问诊已结束')
+    } catch {
+      // cancelled
+    }
+  }
 }
 </script>
 
@@ -554,6 +590,21 @@ function urgencyText(urgency) {
 }
 .typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ========= Completed Banner ========= */
+.completed-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #E8F8E8, #D4EDDA);
+  color: #2E7D32;
+  font-size: 14px;
+  font-weight: 500;
+  border-top: 1px solid #C8E6C9;
+  flex-shrink: 0;
+}
 
 /* ========= Chat Footer ========= */
 .chat-footer {

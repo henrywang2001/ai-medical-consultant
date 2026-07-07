@@ -30,8 +30,17 @@ export const useConsultStore = defineStore('consult', () => {
     messages.value.push(message)
   }
 
+  async function completeConsultation(id) {
+    const res = await api.patch(`/api/v1/consult/${id}/complete`)
+    if (currentConsultation.value && currentConsultation.value.id === id) {
+      currentConsultation.value.status = 'completed'
+    }
+    return res.data
+  }
+
   return {
     consultations, currentConsultation, messages,
     fetchConsultations, createConsultation, fetchConsultation, addMessage,
+    completeConsultation,
   }
 })

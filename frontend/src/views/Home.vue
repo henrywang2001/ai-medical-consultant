@@ -61,8 +61,9 @@
             <span class="stat-value">{{ stat.value }}</span>
             <span class="stat-label">{{ stat.label }}</span>
           </div>
-          <div class="stat-trend" :class="stat.trend > 0 ? 'up' : 'down'">
-            {{ stat.trend > 0 ? '+' : '' }}{{ stat.trend }}%
+          <div v-if="stat.trend > 0" class="stat-trend up">
+            <template v-if="i === 0">已完成 {{ stat.trend }}</template>
+            <template v-else>{{ stat.trend }}%</template>
           </div>
         </div>
       </section>
@@ -191,8 +192,13 @@ async function loadConsultations() {
   try {
     await consultStore.fetchConsultations()
     consultations.value = consultStore.consultations
-    stats[0].value = consultations.value.length
-    stats[1].value = consultations.value.filter(c => c.status === 'active').length
+    const total = consultations.value.length
+    const active = consultations.value.filter(c => c.status === 'active').length
+    const completed = total - active
+    stats[0].value = total
+    stats[0].trend = completed
+    stats[1].value = active
+    stats[1].trend = total > 0 ? Math.round(active / total * 100) : 0
   } catch {
     // handled
   }
