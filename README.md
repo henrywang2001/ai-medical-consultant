@@ -78,7 +78,7 @@ py -m data.medical_kb.init_kb
 py -m uvicorn app.main:app --host 127.0.0.1 --port 9000 --reload
 ```
 
-访问 http://localhost:9000/docs 查看 API 文档。
+访问 http://localhost:9000/  docs 查看 API 文档。
 
 ### 6. 启动前端（可选）
 
