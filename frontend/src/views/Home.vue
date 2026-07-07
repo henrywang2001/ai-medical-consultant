@@ -163,6 +163,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/useUserStore'
 import { useConsultStore } from '../stores/useConsultStore'
 import { Plus, Document, Memo, TrendCharts, Bell, SwitchButton } from '@element-plus/icons-vue'
+import api from '../api/index.js'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -183,7 +184,7 @@ onMounted(async () => {
     return
   }
   await userStore.fetchUser()
-  await loadConsultations()
+  await Promise.all([loadConsultations(), loadKnowledgeStats()])
 })
 
 async function loadConsultations() {
@@ -192,6 +193,15 @@ async function loadConsultations() {
     consultations.value = consultStore.consultations
     stats[0].value = consultations.value.length
     stats[1].value = consultations.value.filter(c => c.status === 'active').length
+  } catch {
+    // handled
+  }
+}
+
+async function loadKnowledgeStats() {
+  try {
+    const res = await api.get('/api/v1/knowledge/stats')
+    stats[2].value = res.data.total_documents
   } catch {
     // handled
   }
