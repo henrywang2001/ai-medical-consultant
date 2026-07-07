@@ -47,16 +47,21 @@ async def create_consultation(
 
 @router.get("/", response_model=List[ConsultationResponse])
 async def list_consultations(
+    search: str = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """获取用户的所有问诊会话"""
-    result = await db.execute(
+    """获取用户的所有问诊会话，支持按标题搜索"""
+    query = (
         select(Consultation)
         .options(selectinload(Consultation.messages))
         .where(Consultation.user_id == current_user.id)
-        .order_by(Consultation.updated_at.desc())
     )
+    if search:
+        query = query.where(Consultation.title.contains(search))
+    query = query.order_by(Consultation.updated_at.desc())
+
+    result = await db.execute(query)
     consultations = result.unique().scalars().all()
     return consultations
 

@@ -21,6 +21,11 @@ const routes = [
     name: 'Knowledge',
     component: () => import('../views/Knowledge.vue'),
   },
+  {
+    path: '/records',
+    name: 'Records',
+    component: () => import('../views/Records.vue'),
+  },
 ]
 
 const router = createRouter({
