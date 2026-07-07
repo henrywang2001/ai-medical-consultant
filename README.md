@@ -88,7 +88,7 @@ npm install
 npm run dev
 ```
 
-访问 http://localhost:5173（Vite 自动代理 API 请求到后端）。
+访问 http://localhost:5173 （Vite 自动代理 API 请求到后端）。
 
 ### Docker 一键部署
 
