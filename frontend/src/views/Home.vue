@@ -87,7 +87,7 @@
             <span class="action-label">知识库</span>
             <span class="action-desc">查阅医学资料</span>
           </div>
-          <div class="action-card">
+          <div class="action-card" @click="$router.push('/records')">
             <div class="action-icon" style="background: linear-gradient(135deg, #FF9500 0%, #E68600 100%);">
               <el-icon :size="24" color="white"><Memo /></el-icon>
             </div>
@@ -105,7 +105,7 @@
       </section>
 
       <!-- Consultation History -->
-      <section class="consult-section">
+      <section id="consult-history" class="consult-section">
         <div class="section-header">
           <h3>问诊记录</h3>
           <span class="section-count" v-if="consultations.length > 0">共 {{ consultations.length }} 条</span>
@@ -216,6 +216,13 @@ async function startNewConsult() {
     // handled
   } finally {
     creating.value = false
+  }
+}
+
+function scrollToConsultHistory() {
+  const el = document.getElementById('consult-history')
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 }
 
