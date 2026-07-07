@@ -116,3 +116,34 @@ async def add_message(
     await db.commit()
     await db.refresh(message)
     return message
+
+
+@router.patch("/{consultation_id}/complete")
+async def complete_consultation(
+    consultation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """结束问诊会话"""
+    import datetime
+    result = await db.execute(
+        select(Consultation).where(Consultation.id == consultation_id)
+    )
+    consultation = result.scalar_one_or_none()
+
+    if not consultation:
+        raise HTTPException(status_code=404, detail="问诊会话不存在")
+    if consultation.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权操作")
+    if consultation.status == "completed":
+        raise HTTPException(status_code=400, detail="该问诊已结束")
+
+    consultation.status = "completed"
+    consultation.updated_at = datetime.datetime.utcnow()
+    await db.commit()
+
+    return {
+        "id": consultation.id,
+        "status": consultation.status,
+        "message": "问诊已结束",
+    }
