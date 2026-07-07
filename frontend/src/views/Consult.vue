@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="consult-page">
     <!-- Chat Header -->
     <header class="chat-header">
@@ -9,10 +9,18 @@
       <div class="chat-header-center">
         <div class="chat-header-avatar">
           <svg width="36" height="36" viewBox="0 0 64 64" fill="none">
-            <circle cx="32" cy="32" r="30" fill="#4F8DFF" fill-opacity="0.1" stroke="#4F8DFF" stroke-width="2"/>
-            <path d="M32 20V44M20 32H44" stroke="#4F8DFF" stroke-width="3" stroke-linecap="round"/>
-            <path d="M26 40C26 40 30 44 34 40" stroke="#4F8DFF" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="32" cy="29" r="6" fill="#4F8DFF" fill-opacity="0.15"/>
+            <circle cx="32" cy="32" r="30" fill="url(#conG)" fill-opacity="0.1" stroke="url(#conG)" stroke-width="2"/>
+            <path d="M20 18H44C46.2 18 48 19.8 48 22V40C48 42.2 46.2 44 44 44H36L32 48L28 44H20C17.8 44 16 42.2 16 40V22C16 19.8 17.8 18 20 18Z" fill="url(#conG)" fill-opacity="0.08" stroke="url(#conG)" stroke-width="2" stroke-linecap="round"/>
+            <path d="M30 26V34M26 30H34" stroke="url(#conG)" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="20" cy="20" r="2.5" fill="#4F8DFF" fill-opacity="0.25"/>
+            <circle cx="44" cy="20" r="2.5" fill="#3A6FD9" fill-opacity="0.25"/>
+            <circle cx="44" cy="44" r="2.5" fill="#3A6FD9" fill-opacity="0.25"/>
+            <defs>
+              <linearGradient id="conG" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#4F8DFF"/>
+                <stop offset="100%" stop-color="#3A6FD9"/>
+              </linearGradient>
+            </defs>
           </svg>
         </div>
         <div class="chat-header-info">
@@ -44,9 +52,18 @@
         <div v-if="messages.length === 0 && !streaming" class="welcome-message">
           <div class="welcome-avatar">
             <svg width="72" height="72" viewBox="0 0 64 64" fill="none">
-              <circle cx="32" cy="32" r="30" fill="#4F8DFF" fill-opacity="0.08" stroke="#4F8DFF" stroke-width="2"/>
-              <path d="M32 20V44M20 32H44" stroke="#4F8DFF" stroke-width="3" stroke-linecap="round"/>
-              <circle cx="32" cy="29" r="5" fill="#4F8DFF" fill-opacity="0.15"/>
+              <circle cx="32" cy="32" r="30" fill="url(#conG)" fill-opacity="0.1" stroke="url(#conG)" stroke-width="2"/>
+              <path d="M20 18H44C46.2 18 48 19.8 48 22V40C48 42.2 46.2 44 44 44H36L32 48L28 44H20C17.8 44 16 42.2 16 40V22C16 19.8 17.8 18 20 18Z" fill="url(#conG)" fill-opacity="0.08" stroke="url(#conG)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M30 26V34M26 30H34" stroke="url(#conG)" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="20" cy="20" r="2.5" fill="#4F8DFF" fill-opacity="0.25"/>
+              <circle cx="44" cy="20" r="2.5" fill="#3A6FD9" fill-opacity="0.25"/>
+              <circle cx="44" cy="44" r="2.5" fill="#3A6FD9" fill-opacity="0.25"/>
+              <defs>
+                <linearGradient id="conG" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#4F8DFF"/>
+                  <stop offset="100%" stop-color="#3A6FD9"/>
+                </linearGradient>
+              </defs>
             </svg>
           </div>
           <h3 class="welcome-title">您好，我是小医</h3>
@@ -82,8 +99,15 @@
             </template>
             <template v-else>
               <svg width="36" height="36" viewBox="0 0 64 64" fill="none">
-                <circle cx="32" cy="32" r="30" fill="#4F8DFF" fill-opacity="0.08"/>
-                <path d="M32 22V42M22 32H42" stroke="#4F8DFF" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="32" cy="32" r="30" fill="url(#conG)" fill-opacity="0.1" stroke="url(#conG)" stroke-width="2"/>
+                <path d="M22 20H42C43.1 20 44 20.9 44 22V38C44 39.1 43.1 40 42 40H36L32 44L28 40H22C20.9 40 20 39.1 20 38V22C20 20.9 20.9 20 22 20Z" fill="url(#conG)" fill-opacity="0.08" stroke="url(#conG)" stroke-width="2" stroke-linecap="round"/>
+                <path d="M30 26V32M28 29H32" stroke="url(#conG)" stroke-width="2" stroke-linecap="round"/>
+                <defs>
+                  <linearGradient id="conG" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#4F8DFF"/>
+                    <stop offset="100%" stop-color="#3A6FD9"/>
+                  </linearGradient>
+                </defs>
               </svg>
             </template>
           </div>
@@ -315,7 +339,7 @@ async function handleMenuCommand(command) {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f0f2f5;
+  background: linear-gradient(135deg, #f0f2f5 0%, #e8ecf5 50%, #e4eaf5 100%);
   font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
@@ -442,8 +466,10 @@ async function handleMenuCommand(command) {
   align-items: center;
   gap: 6px;
   padding: 10px 18px;
-  background: white;
-  border: 1px solid #e8ecf1;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.4);
   border-radius: 20px;
   font-size: 13px;
   color: #555;
@@ -517,10 +543,12 @@ async function handleMenuCommand(command) {
 }
 
 .ai-msg .message-bubble {
-  background: white;
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #303133;
   border-radius: 4px 18px 18px 18px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
   border-left: 3px solid #4F8DFF;
 }
 
@@ -598,19 +626,23 @@ async function handleMenuCommand(command) {
   justify-content: center;
   gap: 8px;
   padding: 14px 24px;
-  background: linear-gradient(135deg, #E8F8E8, #D4EDDA);
+  background: rgba(232,248,232,0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #2E7D32;
   font-size: 14px;
   font-weight: 500;
-  border-top: 1px solid #C8E6C9;
+  border-top: 1px solid rgba(200,230,201,0.5);
   flex-shrink: 0;
 }
 
 /* ========= Chat Footer ========= */
 .chat-footer {
   padding: 16px 24px 20px;
-  background: white;
-  border-top: 1px solid #f0f0f0;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0,0,0,0.04);
   flex-shrink: 0;
 }
 
@@ -620,15 +652,17 @@ async function handleMenuCommand(command) {
   gap: 12px;
   max-width: 800px;
   margin: 0 auto;
-  background: #f5f7fa;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
   padding: 8px 8px 8px 16px;
-  border: 2px solid transparent;
+  border: 2px solid rgba(255,255,255,0.3);
   transition: all 0.3s;
 }
 .input-wrapper:focus-within {
   border-color: #4F8DFF;
-  background: white;
+  background: rgba(255,255,255,0.85);
   box-shadow: 0 0 0 4px rgba(79,141,255,0.08);
 }
 
@@ -647,7 +681,7 @@ async function handleMenuCommand(command) {
   justify-content: center;
 }
 .voice-btn:hover {
-  background: #e8ecf1;
+  background: rgba(255,255,255,0.5);
   color: #4F8DFF;
 }
 

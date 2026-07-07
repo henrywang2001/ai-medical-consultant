@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="knowledge-page">
     <!-- Header -->
     <header class="kb-header">
@@ -10,9 +10,18 @@
       </div>
       <div class="kb-header-center">
         <svg width="28" height="28" viewBox="0 0 64 64" fill="none">
-          <circle cx="32" cy="32" r="30" fill="#34C759" fill-opacity="0.08" stroke="#34C759" stroke-width="2"/>
-          <rect x="24" y="20" width="16" height="24" rx="3" fill="#34C759" fill-opacity="0.12"/>
-          <path d="M28 28H36M28 34H36" stroke="#34C759" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="32" cy="32" r="30" fill="url(#kbG)" fill-opacity="0.1" stroke="url(#kbG)" stroke-width="2"/>
+          <path d="M16 20C16 18.9 16.9 18 18 18H32V46H18C16.9 46 16 45.1 16 44V20Z" fill="url(#kbG)" fill-opacity="0.1" stroke="url(#kbG)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M48 20C48 18.9 47.1 18 46 18H32V46H46C47.1 46 48 45.1 48 44V20Z" fill="url(#kbG)" fill-opacity="0.1" stroke="url(#kbG)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M28 28H36M28 34H36" stroke="url(#kbG)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="20" cy="20" r="2" fill="#34C759" fill-opacity="0.3"/>
+          <circle cx="44" cy="44" r="2" fill="#28A745" fill-opacity="0.3"/>
+          <defs>
+            <linearGradient id="kbG" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#34C759"/>
+              <stop offset="100%" stop-color="#28A745"/>
+            </linearGradient>
+          </defs>
         </svg>
         <h3>医学知识库</h3>
       </div>
@@ -245,7 +254,7 @@ function renderMd(text) {
 <style scoped>
 .knowledge-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #f5f7fa 0%, #eef1f8 50%, #e8ecf5 100%);
   font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
@@ -329,13 +338,16 @@ function renderMd(text) {
 }
 
 .kb-stat-card {
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 16px;
+  padding: 24px;
   display: flex;
   align-items: center;
   gap: 16px;
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.05);
   transition: all 0.3s;
   animation: fadeInUp 0.5s ease-out;
 }
@@ -377,10 +389,13 @@ function renderMd(text) {
 .search-box {
   display: flex;
   align-items: center;
-  background: white;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.35);
   border-radius: 16px;
   padding: 4px 6px 4px 18px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.05);
   border: 2px solid transparent;
   transition: all 0.3s;
 }
@@ -437,7 +452,9 @@ function renderMd(text) {
 }
 .hint-tag {
   padding: 4px 14px;
-  background: white;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 20px;
   font-size: 12px;
   color: #555;
@@ -471,11 +488,14 @@ function renderMd(text) {
 }
 
 .result-card {
-  background: white;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.35);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.05);
   transition: all 0.3s;
   animation: fadeInUp 0.5s ease-out;
   opacity: 0;
@@ -556,10 +576,13 @@ function renderMd(text) {
   gap: 12px;
 }
 .skeleton-card {
-  background: white;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.35);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.05);
 }
 
 /* ========= Empty State ========= */
@@ -574,7 +597,9 @@ function renderMd(text) {
   width: 80px;
   height: 80px;
   border-radius: 20px;
-  background: #f0f2f5;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #b0b0b8;
   margin-bottom: 20px;
 }

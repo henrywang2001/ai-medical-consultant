@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="login-page">
     <!-- Left: Branding & Illustration -->
     <div class="login-brand">
@@ -10,10 +10,16 @@
       <div class="brand-content">
         <div class="brand-logo">
           <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="32" cy="32" r="30" fill="white" fill-opacity="0.15" stroke="white" stroke-width="2"/>
-            <path d="M32 16V48M16 32H48" stroke="white" stroke-width="4" stroke-linecap="round"/>
-            <path d="M28 38C28 38 32 42 36 38" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
-            <path d="M24 26H28L32 32L36 26H40" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <circle cx="32" cy="32" r="30" fill="white" fill-opacity="0.1" stroke="white" stroke-width="2"/>
+            <path d="M32 18C32.8 18 33.5 18.7 33.5 19.5V28.5H42.5C43.3 28.5 44 29.2 44 30V34C44 34.8 43.3 35.5 42.5 35.5H33.5V44.5C33.5 45.3 32.8 46 32 46H28C27.2 46 26.5 45.3 26.5 44.5V35.5H17.5C16.7 35.5 16 34.8 16 34V30C16 29.2 16.7 28.5 17.5 28.5H26.5V19.5C26.5 18.7 27.2 18 28 18H32Z" fill="white" fill-opacity="0.8"/>
+            <circle cx="18" cy="18" r="2.5" fill="white" fill-opacity="0.25"/>
+            <circle cx="46" cy="18" r="2.5" fill="white" fill-opacity="0.25"/>
+            <circle cx="18" cy="46" r="2.5" fill="white" fill-opacity="0.25"/>
+            <circle cx="46" cy="46" r="2.5" fill="white" fill-opacity="0.25"/>
+            <path d="M20 20L25 25" stroke="white" stroke-width="1" stroke-opacity="0.15" stroke-linecap="round"/>
+            <path d="M44 20L39 25" stroke="white" stroke-width="1" stroke-opacity="0.15" stroke-linecap="round"/>
+            <path d="M20 44L25 39" stroke="white" stroke-width="1" stroke-opacity="0.15" stroke-linecap="round"/>
+            <path d="M44 44L39 39" stroke="white" stroke-width="1" stroke-opacity="0.15" stroke-linecap="round"/>
           </svg>
         </div>
         <h1 class="brand-title">AI 智能问诊系统</h1>
@@ -50,8 +56,22 @@
         <div class="login-card-header">
           <div class="login-card-logo">
             <svg width="40" height="40" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="32" cy="32" r="30" fill="#4F8DFF" fill-opacity="0.1" stroke="#4F8DFF" stroke-width="2"/>
-              <path d="M32 16V48M16 32H48" stroke="#4F8DFF" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="32" cy="32" r="30" fill="url(#brandG)" fill-opacity="0.12" stroke="url(#brandG)" stroke-width="2"/>
+              <path d="M32 18C32.8 18 33.5 18.7 33.5 19.5V28.5H42.5C43.3 28.5 44 29.2 44 30V34C44 34.8 43.3 35.5 42.5 35.5H33.5V44.5C33.5 45.3 32.8 46 32 46H28C27.2 46 26.5 45.3 26.5 44.5V35.5H17.5C16.7 35.5 16 34.8 16 34V30C16 29.2 16.7 28.5 17.5 28.5H26.5V19.5C26.5 18.7 27.2 18 28 18H32Z" fill="url(#brandG)" fill-opacity="0.9"/>
+              <circle cx="18" cy="18" r="2.5" fill="#5B8CFF" fill-opacity="0.3"/>
+              <circle cx="46" cy="18" r="2.5" fill="#7C4DFF" fill-opacity="0.3"/>
+              <circle cx="18" cy="46" r="2.5" fill="#7C4DFF" fill-opacity="0.3"/>
+              <circle cx="46" cy="46" r="2.5" fill="#5B8CFF" fill-opacity="0.3"/>
+              <path d="M20 20L25 25" stroke="url(#brandG)" stroke-width="1" stroke-opacity="0.2" stroke-linecap="round"/>
+              <path d="M44 20L39 25" stroke="url(#brandG)" stroke-width="1" stroke-opacity="0.2" stroke-linecap="round"/>
+              <path d="M20 44L25 39" stroke="url(#brandG)" stroke-width="1" stroke-opacity="0.2" stroke-linecap="round"/>
+              <path d="M44 44L39 39" stroke="url(#brandG)" stroke-width="1" stroke-opacity="0.2" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="brandG" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#4F8DFF"/>
+                  <stop offset="100%" stop-color="#7C4DFF"/>
+                </linearGradient>
+              </defs>
             </svg>
           </div>
           <p class="login-card-welcome">欢迎回来</p>
@@ -320,7 +340,7 @@ async function handleRegister() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f8f9fc;
+  background: linear-gradient(135deg, #f0f2f5 0%, #e8ecf5 100%);
   padding: 40px;
   position: relative;
 }
@@ -328,7 +348,10 @@ async function handleRegister() {
 .login-card {
   width: 100%;
   max-width: 400px;
-  background: white;
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.3);
   border-radius: 24px;
   padding: 40px 36px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.08);
@@ -383,19 +406,21 @@ async function handleRegister() {
 
 /* Premium Input Styling */
 .premium-input :deep(.el-input__wrapper) {
-  background: #f5f7fa;
-  border: 2px solid transparent;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid rgba(255,255,255,0.3);
   border-radius: 12px;
   box-shadow: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 4px 12px;
 }
 .premium-input :deep(.el-input__wrapper:hover) {
-  background: #f0f2f5;
-  border-color: #d0d5dd;
+  background: rgba(255,255,255,0.75);
+  border-color: rgba(255,255,255,0.5);
 }
 .premium-input :deep(.el-input__wrapper.is-focus) {
-  background: white;
+  background: rgba(255,255,255,0.9);
   border-color: #4F8DFF;
   box-shadow: 0 0 0 4px rgba(79, 141, 255, 0.1);
 }
@@ -435,7 +460,7 @@ async function handleRegister() {
 .strength-bar {
   flex: 1;
   height: 4px;
-  background: #eee;
+  background: rgba(0,0,0,0.06);
   border-radius: 2px;
   overflow: hidden;
 }

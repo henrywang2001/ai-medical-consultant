@@ -10,9 +10,17 @@
       </div>
       <div class="records-header-center">
         <svg width="28" height="28" viewBox="0 0 64 64" fill="none">
-          <circle cx="32" cy="32" r="30" fill="#FF9500" fill-opacity="0.08" stroke="#FF9500" stroke-width="2"/>
-          <rect x="20" y="16" width="24" height="32" rx="3" fill="#FF9500" fill-opacity="0.12"/>
-          <path d="M26 28H38M26 34H38M26 40H32" stroke="#FF9500" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="32" cy="32" r="30" fill="url(#recG)" fill-opacity="0.1" stroke="url(#recG)" stroke-width="2"/>
+          <rect x="21" y="16" width="22" height="34" rx="4" fill="url(#recG)" fill-opacity="0.1" stroke="url(#recG)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M26 24H38M26 30H38M26 36H32" stroke="url(#recG)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="44" cy="20" r="2" fill="#FF9500" fill-opacity="0.3"/>
+          <circle cx="20" cy="44" r="2" fill="#E68600" fill-opacity="0.3"/>
+          <defs>
+            <linearGradient id="recG" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#FF9500"/>
+              <stop offset="100%" stop-color="#E68600"/>
+            </linearGradient>
+          </defs>
         </svg>
         <h3>我的病历</h3>
       </div>
@@ -78,9 +86,9 @@
       <!-- Table -->
       <div v-else class="records-table-wrapper">
         <el-table :data="filteredConsultations" class="premium-table" style="width: 100%" v-loading="loading">
-          <el-table-column prop="id" label="编号" width="100" />
+          <el-table-column prop="id" label="编号" width="140" align="center" />
           <el-table-column prop="title" label="标题" min-width="220" />
-          <el-table-column prop="status" label="状态" width="130">
+          <el-table-column prop="status" label="状态" width="130" align="center">
             <template #default="{ row }">
               <span :class="['status-tag', row.status]">
                 <span class="status-dot"></span>
@@ -88,7 +96,7 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="updated_at" label="更新时间" min-width="180">
+          <el-table-column prop="updated_at" label="更新时间" min-width="220">
             <template #default="{ row }">
               <span class="time-text">{{ formatDate(row.updated_at) }}</span>
             </template>
@@ -96,7 +104,7 @@
           <el-table-column label="操作" width="120" fixed="right">
             <template #default="{ row }">
               <el-button size="small" class="table-action-btn" @click="$router.push(`/consult/${row.id}`)">
-                进入问诊
+                {{ row.status === 'completed' ? '查看记录' : '进入问诊' }}
               </el-button>
             </template>
           </el-table-column>
@@ -169,7 +177,7 @@ onMounted(() => {
 <style scoped>
 .records-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #f5f7fa 0%, #eef1f8 50%, #e8ecf5 100%);
   font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
@@ -234,13 +242,16 @@ onMounted(() => {
   margin-bottom: 28px;
 }
 .records-stat-card {
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 16px;
+  padding: 24px;
   display: flex;
   align-items: center;
   gap: 16px;
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.05);
   transition: all 0.3s;
   animation: fadeInUp 0.5s ease-out;
 }
@@ -279,10 +290,13 @@ onMounted(() => {
 .search-box {
   display: flex;
   align-items: center;
-  background: white;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.35);
   border-radius: 16px;
   padding: 4px 6px 4px 18px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.05);
   border: 2px solid transparent;
   transition: all 0.3s;
 }
@@ -340,36 +354,59 @@ onMounted(() => {
 
 /* ========= Table ========= */
 .records-table-wrapper {
-  background: white;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.35);
   border-radius: 16px;
   padding: 4px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.05);
   overflow: hidden;
 }
 
+.premium-table :deep(.el-table__inner-wrapper)::before {
+  display: none;
+}
 .premium-table :deep(.el-table__header th) {
-  background: #f8f9fc;
-  color: #555;
+  background: linear-gradient(135deg, #f4f7ff 0%, #f8f9fc 100%);
+  color: #1a1a2e;
   font-weight: 600;
   font-size: 13px;
-  border-bottom: 1px solid #f0f0f0;
-  padding: 12px;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid #e8ecf1;
+  padding: 14px 12px;
+  font-family: 'Outfit', 'Inter', sans-serif;
 }
 .premium-table :deep(.el-table__header th:first-child) {
   padding-left: 20px;
 }
 .premium-table :deep(.el-table__body td) {
-  border-bottom: 1px solid #f5f5f5;
-  padding: 14px 12px;
+  border-bottom: 1px solid #f3f5f8;
+  padding: 16px 12px;
+  font-size: 13.5px;
+  color: #444;
 }
 .premium-table :deep(.el-table__body td:first-child) {
   padding-left: 20px;
 }
+.premium-table :deep(.el-table__body td:last-child) {
+  padding-right: 16px;
+}
+.premium-table :deep(.el-table__body tr:last-child td) {
+  border-bottom: none;
+}
 .premium-table :deep(.el-table__row) {
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  animation: rowSlideIn 0.4s ease-out both;
 }
 .premium-table :deep(.el-table__row:hover) {
-  background: #f5f8ff !important;
+  background: #f0f6ff !important;
+  cursor: pointer;
+}
+
+@keyframes rowSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .status-tag {
@@ -386,8 +423,8 @@ onMounted(() => {
   color: #2E7D32;
 }
 .status-tag.completed {
-  background: #f0f0f0;
-  color: #666;
+  background: linear-gradient(135deg, #E8F4FD, #D0EAFC);
+  color: #1E6EA0;
 }
 .status-dot {
   width: 6px;
@@ -396,7 +433,7 @@ onMounted(() => {
   display: inline-block;
 }
 .status-tag.active .status-dot { background: #34C759; }
-.status-tag.completed .status-dot { background: #999; }
+.status-tag.completed .status-dot { background: #4F8DFF; }
 
 .time-text {
   font-size: 13px;
@@ -423,11 +460,14 @@ onMounted(() => {
 
 /* ========= Empty State ========= */
 .empty-state {
-  background: white;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.35);
   border-radius: 16px;
   padding: 60px 40px;
   text-align: center;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.05);
 }
 .empty-illustration {
   margin-bottom: 20px;
