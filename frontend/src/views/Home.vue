@@ -150,6 +150,7 @@
             <span class="action-label">我的病历</span>
             <span class="action-desc">查看问诊记录</span>
           </div>
+<!-- 
           <div class="action-card">
             <div class="action-icon" style="background: linear-gradient(135deg, #7C4DFF 0%, #651FFF 100%);">
               <el-icon :size="24" color="white"><TrendCharts /></el-icon>
@@ -157,6 +158,7 @@
             <span class="action-label">健康建议</span>
             <span class="action-desc">个性化健康指导</span>
           </div>
+          -->
         </div>
       </section>
 
@@ -717,7 +719,7 @@ function handleLogout() {
 
 .actions-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
