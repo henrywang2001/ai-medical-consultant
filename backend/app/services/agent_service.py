@@ -28,6 +28,30 @@ class MedicalAgent:
     INTENT_QUERY = "query"            # 查询类 - 医学知识查询
     INTENT_CHITCHAT = "chitchat"      # 闲聊类 - 一般对话
 
+    # 紧急关键词 — 双层防御的兜底列表
+    EMERGENCY_KEYWORDS = [
+        # 心脑血管
+        "胸痛", "胸闷", "心慌", "心悸", "心绞痛",
+        "呼吸困难", "喘不过气", "窒息", "上不来气",
+        # 神经
+        "晕倒", "昏倒", "失去意识", "不省人事", "昏迷",
+        "抽搐", "痉挛", "癫痫", "口吐白沫",
+        "突然看不见", "突然听不见", "半身不遂", "偏瘫", "面瘫",
+        "剧烈头痛",
+        # 出血/创伤
+        "大出血", "吐血", "咳血", "便血",
+        "严重外伤", "骨折", "车祸",
+        # 中毒/过敏
+        "过敏性休克", "喉头水肿",
+        "中毒", "误食.*药", "过量.*药", "农药",
+        # 其他急症
+        "严重烧伤", "大面积烫伤",
+        "自杀", "自残", "不想活",
+        "高烧.*不退", "持续.*40度",
+        "腹痛.*剧烈", "绞痛",
+        "严重过敏",
+    ]
+
     def __init__(self):
         self.current_intent = None
         self.collected_symptoms: List[Dict] = []
@@ -67,6 +91,24 @@ class MedicalAgent:
         else:
             async for chunk in self._handle_chitchat(user_message, conversation_history):
                 yield chunk
+
+    # ==================== 紧急检测 ====================
+
+    def _check_emergency_keywords(self, message: str):
+        """
+        关键词紧急检测 — 不依赖 LLM，零延迟。
+        返回匹配到的危险信号关键词，或 None。
+
+        用途：双层防御
+          - 第 1 层：LLM 调用前预检（快速拦截，零延迟）
+          - 第 2 层：LLM 调用后兜底（LLM 漏判 / JSON 解析失败时补救）
+        """
+        import re
+        message_lower = message.lower()
+        for keyword in self.EMERGENCY_KEYWORDS:
+            if re.search(keyword, message_lower):
+                return keyword
+        return None
 
     # ==================== 意图识别 ====================
 
@@ -113,6 +155,23 @@ class MedicalAgent:
     ) -> AsyncGenerator[Dict, None]:
         """处理问诊类消息"""
 
+        # ===== 第 1 层：LLM 调用前关键词预检 =====
+        emergency_hit = self._check_emergency_keywords(user_message)
+        if emergency_hit:
+            logger.warning(
+                f"[Agent] Emergency keyword hit: '{emergency_hit}' "
+                f"| message: {user_message[:80]}"
+            )
+            yield {
+                "type": "emergency",
+                "content": (
+                    "⚠️ 根据您的描述（{}），这可能属于紧急情况！\n\n"
+                    "请立即前往医院急诊科就诊或拨打120。"
+                ).format(emergency_hit),
+                "metadata": {"urgency": "emergency", "source": "keyword_prescan"}
+            }
+            return
+
         # Step A: 症状分析 - 从用户消息中提取结构化症状
         yield {"type": "status", "content": "正在分析您的症状...", "metadata": {"step": "symptom_analysis"}}
 
@@ -121,7 +180,18 @@ class MedicalAgent:
         if "symptoms" in symptom_result:
             self.collected_symptoms.extend(symptom_result["symptoms"])
 
+        # ===== 第 2 层：LLM 调用后关键词兜底 =====
         is_emergency = symptom_result.get("is_emergency", False)
+
+        if not is_emergency:
+            fallback_hit = self._check_emergency_keywords(user_message)
+            if fallback_hit:
+                is_emergency = True
+                logger.warning(
+                    f"[Agent] LLM missed emergency '{fallback_hit}', "
+                    f"caught by keyword fallback. "
+                    f"LLM response preview: {str(symptom_result)[:200]}"
+                )
 
         # 紧急情况立即建议就医
         if is_emergency:

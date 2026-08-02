@@ -28,6 +28,15 @@ class RAGService:
         self.metadata: List[Dict] = []       # 文档元数据
         self._dimension = settings.VECTOR_DIMENSION
 
+    @staticmethod
+    def _cuda_available() -> bool:
+        """Check if CUDA GPU is available for embedding inference."""
+        try:
+            import torch
+            return torch.cuda.is_available()
+        except Exception:
+            return False
+
     # ==================== 初始化 ====================
 
     async def initialize(self):
@@ -46,8 +55,12 @@ class RAGService:
         self.embedding_model = None
         try:
             from sentence_transformers import SentenceTransformer
-            self.embedding_model = SentenceTransformer(local_model_name)
-            logger.info(f"Embedding model loaded locally: {local_model_name} -> {settings.EMBEDDING_MODEL}")
+            self.embedding_model = SentenceTransformer(
+                local_model_name,
+                device="cuda" if self._cuda_available() else "cpu",
+            )
+            logger.info(f"Embedding model loaded locally: {local_model_name} -> {settings.EMBEDDING_MODEL}"
+                        f" (device={'cuda' if self._cuda_available() else 'cpu'})")
         except Exception as e:
             logger.warning(f"Local embedding model load failed, will use API: {e}")
             self.embedding_model = None
@@ -84,16 +97,42 @@ class RAGService:
         添加文档到知识库（离线操作）
 
         流程:
-        1. texts: ["文档1内容", "文档2内容", ...]
+        1. content_hash 去重（跳过已存在的文档）
         2. embedding_model.encode(texts): 将文本转为N维向量
         3. index.add(vectors): 添加到FAISS索引
         4. 保存原始文档和元数据
         """
+        import hashlib
+
         if metadatas is None:
             metadatas = [{} for _ in texts]
 
+        # Step 0: 去重 — 基于 content SHA256
+        existing_hashes = {
+            hashlib.sha256(d.encode("utf-8")).hexdigest()
+            for d in self.documents
+        }
+        deduped_texts = []
+        deduped_metas = []
+        skipped = 0
+        for text, meta in zip(texts, metadatas):
+            h = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            if h in existing_hashes:
+                skipped += 1
+                continue
+            existing_hashes.add(h)
+            deduped_texts.append(text)
+            deduped_metas.append(meta)
+
+        if skipped:
+            logger.info(f"Skipped {skipped} duplicate document(s), "
+                        f"processing {len(deduped_texts)} new")
+
+        if not deduped_texts:
+            return 0
+
         # Step 1: 文本向量化
-        embeddings = await self._embed_texts(texts)
+        embeddings = await self._embed_texts(deduped_texts)
         embeddings = np.array(embeddings).astype("float32")
 
         # Step 2: 添加到FAISS索引
@@ -105,14 +144,14 @@ class RAGService:
         self.index.add(embeddings)
 
         # Step 3: 保存原始文档
-        self.documents.extend(texts)
-        self.metadata.extend(metadatas)
+        self.documents.extend(deduped_texts)
+        self.metadata.extend(deduped_metas)
 
         # Step 4: 持久化保存
         self._save_index()
 
-        logger.info(f"Added {len(texts)} documents, total: {self.index.ntotal}")
-        return len(texts)
+        logger.info(f"Added {len(deduped_texts)} documents, total: {self.index.ntotal}")
+        return len(deduped_texts)
 
     async def _embed_texts(self, texts: List[str]) -> List[List[float]]:
         """文本向量化 - 支持本地模型和DashScope API"""

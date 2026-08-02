@@ -20,6 +20,11 @@ frontend/dist/
 backend/data/faiss_index/
 backend/data/*.db
 backend/data/*.sqlite3
+# Large datasets — download & import on target machine:
+backend/data/diseases.json
+backend/data/drugs.json
+backend/data/exams.json
+backend/data/pdfs/
 
 # ==================== IDE ====================
 .vscode/

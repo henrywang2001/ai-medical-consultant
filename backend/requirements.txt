@@ -34,12 +34,19 @@ dashscope==1.21.0
 # Embedding & Vector DB
 sentence-transformers==3.3.1
 faiss-cpu>=1.8.0
+# torch — install with CUDA support separately:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+#   (For RTX 50xx Blackwell, use nightly: pip install torch --index-url https://download.pytorch.org/whl/nightly/cu128)
 # chromadb==0.5.23  # 需要MSVC编译，Windows建议使用FAISS
 
 # Document Processing
 pypdf2==3.0.1
+pdfplumber>=0.11.0
 python-docx==1.1.2
 markdown==3.7
+
+# JSON Stream Parsing (bulk import)
+ijson>=3.2.0
 
 # Data Validation
 pydantic==2.10.4

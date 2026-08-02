@@ -4,7 +4,7 @@ import asyncio
 import json
 import sys
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:9000"
 USERNAME = "testuser"
 PASSWORD = "123456"
 
@@ -141,16 +141,14 @@ async def main():
             print(f"   [FAIL] {r.text}")
             failed += 1
 
-        # 10. Add Knowledge Document
-        print("\n10. Add Knowledge Document")
-        r = await client.post('/api/v1/knowledge/documents', json={
-            'title': 'Test Disease',
-            'category': 'disease',
-            'content': 'Test disease is a fictional condition used for testing the medical knowledge base system.'
-        }, headers=headers)
+        # 10. List Knowledge Documents (read-only, no side effects)
+        print("\n10. List Knowledge Documents")
+        r = await client.get('/api/v1/knowledge/documents', headers=headers)
         print(f"   Status: {r.status_code}")
         if r.status_code == 200:
-            print(f"   [PASS] {r.json()}")
+            data = r.json()
+            doc_count = len(data) if isinstance(data, list) else 'N/A'
+            print(f"   [PASS] Documents listed: {doc_count}")
             passed += 1
         else:
             print(f"   [FAIL] {r.text}")
