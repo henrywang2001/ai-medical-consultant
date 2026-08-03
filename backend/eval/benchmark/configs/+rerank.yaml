@@ -1,0 +1,9 @@
+# +Rerank 实验配置 — 双路召回后加 CrossEncoder 重排序
+# 用法: py -m eval.benchmark.run --config +rerank
+name: "+CrossEncoder Rerank"
+description: "双路召回 (Dense+Sparse) + RRF 融合 + bge-reranker-base CrossEncoder 重排序 (top-20 → rerank → top-10)"
+params:
+  top_k: 20
+  score_threshold: 0.0
+  rerank_model: "BAAI/bge-reranker-base"
+  rerank_top_k: 10
