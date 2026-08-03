@@ -12,7 +12,7 @@
 ## 功能特性
 
 - **智能问诊** — 多轮对话收集症状，AI 分析并给出分诊建议
-- **RAG 检索增强** — 基于 FAISS 向量索引的医学知识库检索（支持稠密+稀疏混合检索）
+- **RAG 检索增强** — 稠密+BM25 (jieba分词+IDF+TF饱和) + RRF融合 + CrossEncoder Rerank
 - **Agent 决策编排** — 意图识别（问诊/查询/闲聊）→ 症状分析 → 追问 → 分诊 → 诊断
 - **流式对话** — WebSocket 实时流式输出，逐 token 推送
 - **知识库管理** — 支持手动添加、搜索、文档上传（PDF/Word/Markdown/TXT）
@@ -181,6 +181,17 @@ ai-medical-consultant/
                         ↓
                   流式输出（WebSocket）
 ```
+
+## 检索增强对比 (28,585 chunks, 双轨评测)
+
+| 实验 | 合成Hit@3 | 人工Recall@3 | 加权总分 | P50延迟 | 说明 |
+|:---|---:|---:|---:|---:|:---|
+| 基线 (假BM25) | 0.32 | 0.33 | 0.353 | 103ms | Dense + 字符级重叠 + RRF |
+| +真BM25 | 0.50 | 0.40 | 0.445 | 78ms | jieba分词 + IDF + TF饱和 |
+| +Rerank | 0.70 | 0.45 | **0.540** | 718ms | BM25 + CrossEncoder精排 (50→10) |
+| +LLM改写 | 0.70 | 0.44 | 0.537 | 2021ms | DeepSeek口语→术语 (不划算) |
+
+> **最佳配置**: BM25 (jieba分词) + RRF + bge-reranker-base CrossEncoder。累计提升 +53%。
 
 ## License
 
