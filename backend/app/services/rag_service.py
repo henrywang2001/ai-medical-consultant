@@ -26,7 +26,7 @@ class RAGService:
         self.index = None  # FAISS index
         self.documents: List[str] = []       # 文档内容
         self.metadata: List[Dict] = []       # 文档元数据
-        self._dimension = settings.VECTOR_DIMENSION
+        self._dimension = None  # 从第一次 embedding 自动探测
 
     @staticmethod
     def _cuda_available() -> bool:
@@ -191,9 +191,10 @@ class RAGService:
             if resp.status_code == 200:
                 embeddings.append(resp.output["embeddings"][0]["embedding"])
             else:
-                logger.error(f"Embedding failed: {resp.message}")
-                # Fallback: zero vector
-                embeddings.append([0.0] * self._dimension)
+                raise RuntimeError(
+                    f"Embedding API failed for text [{text[:80]}...]: "
+                    f"status={resp.status_code}, message={resp.message}"
+                )
 
         return embeddings
 

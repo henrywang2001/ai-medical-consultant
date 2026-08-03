@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # --- FAISS ---
     FAISS_INDEX_PATH: str = "./data/faiss_index"
-    VECTOR_DIMENSION: int = 1536
+    VECTOR_DIMENSION: int = 512  # deprecated: 实际维度从 embedding 模型自动探测（bge-small-zh-v1.5=512）
 
     # --- JWT ---
     SECRET_KEY: str = "medical-consultant-secret-key-change-in-production"
