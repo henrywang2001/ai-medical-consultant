@@ -404,16 +404,25 @@ class RAGService:
         """
         retrieved = await self.search(query, top_k=top_k)
 
-        # 构建检索知识文本
+        # 构建检索知识文本（编号引用 + 末尾出处）
         knowledge_texts = []
-        for i, doc in enumerate(retrieved):
-            source = doc.get("source", f"来源{i+1}")
-            knowledge_texts.append(f"[{source}] {doc['content']}")
+        references = []
+        for i, doc in enumerate(retrieved, start=1):
+            knowledge_texts.append(f"[{i}] {doc['content']}")
+            source = doc.get("source", "")
+            title = doc.get("title", "")
+            if source or title:
+                parts = [p for p in [source, title] if p]
+                references.append(f"[{i}] {' — '.join(parts)}")
+
+        context = "\n\n".join(knowledge_texts)
+        if references:
+            context += "\n\n---\n参考文献:\n" + "\n".join(references)
 
         return {
             "query": query,
             "retrieved_docs": retrieved,
-            "knowledge_context": "\n\n".join(knowledge_texts),
+            "knowledge_context": context,
             "conversation_history": conversation_history or [],
             "retrieved_count": len(retrieved),
         }

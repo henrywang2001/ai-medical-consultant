@@ -326,7 +326,7 @@ async def init():
 
     texts = [item["content"] for item in MEDICAL_KNOWLEDGE]
     metadatas = [
-        {"title": item["title"], "category": item["category"]}
+        {"title": item["title"], "category": item["category"], "source": "init_kb"}
         for item in MEDICAL_KNOWLEDGE
     ]
 
