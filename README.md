@@ -117,11 +117,18 @@ ai-medical-consultant/
 │   │   ├── services/
 │   │   │   ├── agent_service.py # Agent 决策编排
 │   │   │   ├── llm_service.py   # LLM 调用（流式/非流式）
-│   │   │   └── rag_service.py   # RAG 检索增强
+│   │   │   └── rag_service.py   # RAG 检索增强（切分/去重/阈值过滤）
 │   │   └── middleware/
 │   │       └── auth.py          # JWT 认证
-│   ├── data/medical_kb/
-│   │   └── init_kb.py           # 知识库初始化（8 条示例医学知识）
+│   ├── data/
+│   │   ├── medical_kb/
+│   │   │   └── init_kb.py       # 知识库初始化（示例医学知识 + 批量导入）
+│   │   ├── import_bulk.py       # 批量导入（ijson 流式，~29K chunks）
+│   │   └── cleanup.py           # FAISS + DB 双删清理
+│   ├── eval/
+│   │   ├── eval_retrieval.py    # 检索评测脚本
+│   │   ├── eval_queries.json    # 25 条标注查询
+│   │   └── eval_results.json    # 评测结果
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
