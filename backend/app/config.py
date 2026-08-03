@@ -49,7 +49,13 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 50
     CHUNK_MIN_SIZE: int = 50  # 丢弃小于此长度的尾块
     TOP_K_RETRIEVAL: int = 5
-    SCORE_THRESHOLD: float = 0.2  # 稠密检索最低相似度，低于此值的文档不进 RRF 融合
+    SCORE_THRESHOLD: float = 0.2  # 稠密检索最低相似度
+    RRF_K: int = 60  # RRF 融合参数 k (越大越平滑)
+    # Rerank
+    RERANK_MODEL: str = "BAAI/bge-reranker-base"
+    RERANK_CANDIDATES: int = 0  # 0=关闭, >0=送 rerank 的候选数
+    RERANK_TOP_K: int = 10
+    RERANK_BATCH_SIZE: int = 8
 
     class Config:
         env_file = ".env"

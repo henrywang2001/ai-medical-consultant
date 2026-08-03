@@ -32,6 +32,7 @@ class RAGService:
         self._bm25_k1 = 1.2     # BM25 TF 饱和参数
         self._bm25_b = 0.75     # BM25 长度归一化参数
         self._use_stopwords = True
+        self._reranker = None   # CrossEncoder (lazy init)
 
     @staticmethod
     def _cuda_available() -> bool:
@@ -407,14 +408,48 @@ class RAGService:
         # Step 3: 稀疏检索 - BM25关键词 (真 BM25: jieba分词 + IDF + TF饱和 + 长度归一)
         sparse_results = self._bm25_search(query, top_k * 2, score_threshold)
 
-        # Step 4: RRF融合排序
-        fused = self._rrf_fusion(dense_results, sparse_results, top_k)
+        # Step 4: RRF融合排序 (k 值可配，默认 60)
+        rrf_k = getattr(settings, 'RRF_K', 60)
+        fused = self._rrf_fusion(dense_results, sparse_results, top_k, k=rrf_k)
 
         # Step 5: 按分类过滤
         if category:
             fused = [r for r in fused if r.get("category") == category]
 
+        # Step 6: Rerank (可选)
+        rerank_candidates = getattr(settings, 'RERANK_CANDIDATES', 0)
+        if rerank_candidates > 0:
+            fused = self._rerank(query, fused[:rerank_candidates],
+                                 getattr(settings, 'RERANK_TOP_K', top_k))
+
         return fused[:top_k]
+
+    # ==================== CrossEncoder Rerank ====================
+
+    def _load_reranker(self):
+        """懒加载 CrossEncoder 重排序模型。"""
+        if self._reranker is not None:
+            return
+        from sentence_transformers import CrossEncoder
+        model_name = getattr(settings, 'RERANK_MODEL', 'BAAI/bge-reranker-base')
+        device = "cuda" if self._cuda_available() else "cpu"
+        self._reranker = CrossEncoder(model_name, device=device)
+        logger.info(f"Reranker loaded: {model_name} (device={device})")
+
+    def _rerank(self, query: str, candidates: List[Dict], top_k: int) -> List[Dict]:
+        """CrossEncoder 精排——对 query-doc pair 重新打分。"""
+        if not candidates:
+            return []
+        self._load_reranker()
+        pairs = [[query, c["content"]] for c in candidates]
+        batch_size = getattr(settings, 'RERANK_BATCH_SIZE', 8)
+        scores = self._reranker.predict(pairs, batch_size=batch_size,
+                                         show_progress_bar=False)
+        # 更新 score 并排序
+        for c, s in zip(candidates, scores):
+            c["score"] = float(s)
+            c["method"] = "rerank"
+        return sorted(candidates, key=lambda x: x["score"], reverse=True)[:top_k]
 
     async def _dense_search(self, query: str, top_k: int, threshold: float = 0.0) -> List[Dict]:
         """稠密检索 - FAISS向量搜索"""

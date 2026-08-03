@@ -424,6 +424,17 @@ async def main(config_name: str = "baseline", verbose: bool = False):
         rag_service._use_stopwords = params["use_stopwords"]
     # force rebuild BM25 on parameter change
     rag_service._bm25 = None
+    # 应用 RRF k 值
+    if "rrf_k" in params:
+        import app.config as _cfg
+        _cfg.settings.RRF_K = params["rrf_k"]
+    # 应用 Rerank 参数
+    if params.get("rerank_enabled"):
+        _cfg.settings.RERANK_CANDIDATES = params.get("rerank_candidates", 50)
+        _cfg.settings.RERANK_TOP_K = params.get("rerank_top_k", 10)
+        _cfg.settings.RERANK_BATCH_SIZE = params.get("rerank_batch_size", 8)
+    else:
+        _cfg.settings.RERANK_CANDIDATES = 0  # 关闭
 
     print("=" * 60)
     print(f"评测配置: {name}")
