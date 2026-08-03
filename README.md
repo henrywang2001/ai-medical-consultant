@@ -16,6 +16,7 @@
 - **Agent 决策编排** — 意图识别（问诊/查询/闲聊）→ 症状分析 → 追问 → 分诊 → 诊断
 - **流式对话** — WebSocket 实时流式输出，逐 token 推送
 - **知识库管理** — 支持手动添加、搜索、文档上传（PDF/Word/Markdown/TXT）
+- **评测体系** — 双轨评测（合成集 + 人工难题集），config 驱动，Markdown 表格输出
 - **JWT 认证** — 用户注册/登录，会话隔离
 
 ## 技术栈
@@ -125,10 +126,16 @@ ai-medical-consultant/
 │   │   │   └── init_kb.py       # 知识库初始化（示例医学知识 + 批量导入）
 │   │   ├── import_bulk.py       # 批量导入（ijson 流式，~29K chunks）
 │   │   └── cleanup.py           # FAISS + DB 双删清理
-│   ├── eval/
+   │   ├── eval/
 │   │   ├── eval_retrieval.py    # 检索评测脚本
 │   │   ├── eval_queries.json    # 25 条标注查询
-│   │   └── eval_results.json    # 评测结果
+│   │   ├── eval_results.json    # 评测结果
+│   │   └── benchmark/           # 双轨评测体系
+│   │       ├── run.py           # config 驱动入口（单命令出表）
+│   │       ├── generate_synthetic.py  # 合成集生成
+│   │       ├── hard_queries.json      # 30 条手写难题
+│   │       ├── configs/          # 实验配置 (YAML)
+│   │       └── snapshots/        # 评测结果归档
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
