@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     TOP_K_RETRIEVAL: int = 5
     SCORE_THRESHOLD: float = 0.2  # 稠密检索最低相似度
     RRF_K: int = 60  # RRF 融合参数 k (越大越平滑)
-    QUERY_EXPANSION: str = "dict"  # query 改写方法: dict / llm / none
+    QUERY_EXPANSION: str = "dict"  # query 改写方法: dict (默认) / llm / none
     # Rerank
     RERANK_MODEL: str = "BAAI/bge-reranker-base"
     RERANK_CANDIDATES: int = 0  # 0=关闭, >0=送 rerank 的候选数
