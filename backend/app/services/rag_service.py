@@ -344,32 +344,46 @@ class RAGService:
     # ==================== 问题改写 (Query Expansion) ====================
 
     async def _expand_query(self, query: str) -> str:
-        """
-        Query Expansion - 问题改写
-        - 同义词替换: 头痛 → 头疼
-        - 症状标准化: "发烧" → "发热"
-        - 问句补全: "胃疼" → "胃部疼痛"
-        """
-        # 医学同义词映射
+        """Query Expansion — dict fallback, LLM (delegated to RAGService instance), or none."""
+        method = getattr(settings, 'QUERY_EXPANSION', 'dict')
+        if method == 'llm':
+            return await self._llm_expand_query(query)
+        elif method == 'dict':
+            return self._dict_expand_query(query)
+        return query
+
+    def _dict_expand_query(self, query: str) -> str:
+        """硬编码医学同义词映射。"""
         synonyms = {
-            "头痛": "头疼",
-            "肚子疼": "腹痛",
-            "发烧": "发热",
-            "胃疼": "胃痛 胃部疼痛",
-            "咳嗽": "咳嗽 咳痰",
-            "拉肚子": "腹泻",
-            "感冒": "上呼吸道感染 感冒",
-            "睡不着": "失眠 睡眠障碍",
-            "胸闷": "胸闷 胸痛 心慌",
+            "头痛": "头疼", "肚子疼": "腹痛", "发烧": "发热",
+            "胃疼": "胃痛 胃部疼痛", "咳嗽": "咳嗽 咳痰",
+            "拉肚子": "腹泻", "感冒": "上呼吸道感染 感冒",
+            "睡不着": "失眠 睡眠障碍", "胸闷": "胸闷 胸痛 心慌",
             "头晕": "头晕 眩晕 头昏",
         }
-
         expanded_terms = [query]
         for key, val in synonyms.items():
             if key in query:
                 expanded_terms.append(val)
-
         return " ".join(expanded_terms)
+
+    async def _llm_expand_query(self, query: str) -> str:
+        """LLM 口语→医学术语改写。"""
+        from app.services.llm_service import LLMService
+        llm = LLMService()
+        prompt = (
+            "你是医学搜索引擎查询改写器。将用户的日常口语query改写成适合搜索医学知识库的术语式query。"
+            "只输出改写后的query，不要加任何解释或标点。\n"
+            f"用户query: {query}"
+        )
+        try:
+            result = await llm.chat(
+                [{"role": "user", "content": prompt}],
+                temperature=0.2, max_tokens=80
+            )
+            return result.strip().strip("\"'。.")
+        except Exception:
+            return query
 
     # ==================== 多路检索 ====================
 

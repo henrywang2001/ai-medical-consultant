@@ -435,6 +435,9 @@ async def main(config_name: str = "baseline", verbose: bool = False):
         _cfg.settings.RERANK_BATCH_SIZE = params.get("rerank_batch_size", 8)
     else:
         _cfg.settings.RERANK_CANDIDATES = 0  # 关闭
+    # 应用 Query Expansion
+    if "query_expansion" in params:
+        _cfg.settings.QUERY_EXPANSION = params["query_expansion"]
 
     print("=" * 60)
     print(f"评测配置: {name}")
