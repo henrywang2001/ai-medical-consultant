@@ -21,10 +21,10 @@ async def agent_triage(
     result = await medical_agent.triage(symptoms_dict)
 
     return AgentTriageResult(
-        department=result.get("department", ""),
-        urgency=result.get("urgency", "normal"),
-        confidence=result.get("confidence", 0.0),
-        reasoning=result.get("reasoning", ""),
+        department=result.department,
+        urgency=result.urgency,
+        confidence=result.confidence,
+        reasoning=result.reasoning,
     )
 
 
@@ -38,9 +38,9 @@ async def agent_diagnose(
     result = await medical_agent.diagnose(symptoms_dict)
 
     return AgentDiagnosisResult(
-        possible_conditions=result.get("possible_conditions", []),
-        suggested_exams=result.get("suggested_exams", []),
-        care_advice=result.get("care_advice", []),
+        possible_conditions=[c.model_dump() if hasattr(c, 'model_dump') else c for c in result.possible_conditions],
+        suggested_exams=result.suggested_exams,
+        care_advice=result.care_advice,
     )
 
 

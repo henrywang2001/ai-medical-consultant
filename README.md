@@ -12,6 +12,7 @@
 ## 功能特性
 
 - **智能问诊** — 多轮对话收集症状，AI 分析并给出分诊建议
+- **三层 fail-closed 防线** — 关键词预检 → JSON mode 强制合法输出 → pydantic 类型校验；解析失败一律升级为急症
 - **RAG 检索增强** — 稠密+BM25 (jieba分词+IDF+TF饱和) + RRF融合 + CrossEncoder Rerank
 - **Agent 决策编排** — 意图识别（问诊/查询/闲聊）→ 症状分析 → 追问 → 分诊 → 诊断
 - **流式对话** — WebSocket 实时流式输出，逐 token 推送
@@ -117,8 +118,10 @@ ai-medical-consultant/
 │   │   │   └── websocket.py     # WebSocket 流式对话
 │   │   ├── services/
 │   │   │   ├── agent_service.py # Agent 决策编排
-│   │   │   ├── llm_service.py   # LLM 调用（流式/非流式）
+│   │   │   ├── llm_service.py   # LLM 调用（流式/非流式/结构化）
 │   │   │   └── rag_service.py   # RAG 检索增强（切分/去重/阈值过滤）
+│   │   ├── schemas/
+│   │   │   └── structured_output.py  # LLM 结构化输出 pydantic 校验
 │   │   └── middleware/
 │   │       └── auth.py          # JWT 认证
 │   ├── data/
@@ -171,7 +174,9 @@ ai-medical-consultant/
 | GET | `/api/v1/knowledge/stats` | 知识库统计 |
 | WS | `/api/ws/chat` | WebSocket 流式对话 |
 
-## Agent 决策流程
+## Agent 决策流程 & fail-closed 安全防线
+
+### 问诊流程
 
 ```
 用户输入 → 意图识别
@@ -181,6 +186,37 @@ ai-medical-consultant/
                         ↓
                   流式输出（WebSocket）
 ```
+
+### fail-closed 三层防线（医疗场景不能漏判急症）
+
+改造前：LLM 输出格式抖动 → 正则解析失败 → 返回 `{"error":"JSON解析失败"}` → 下游 `.get("is_emergency", False)` 默认 **漏判急症**。
+
+改造后：三层纵深防御，**宁可误报不可漏报**。
+
+```
+用户输入
+  │
+  ├─ 第 1 层：关键词预检（零延迟，LLM 调用前）
+  │    EmergencyKeywords 33 项正则 → 命中则直接返回急诊
+  │
+  ├─ 第 2 层：LLM 结构化输出（JSON mode）
+  │    chat_structured() → response_format={"type":"json_object"}
+  │    DeepSeek 保证语法合法 → json.loads → pydantic model_validate 校字段/类型
+  │
+  ├─ 第 3 层：关键词兜底（LLM 漏判时补救）
+  │    LLM 判定非急症 → 再次检查关键词 → 命中则修正为急症
+  │
+  └─ 任意一层失败 → raise StructuredOutputError
+       ├─ 症状分析失败 → is_emergency = True → 直接返回急诊
+       └─ 分诊失败 → urgency = "emergency"
+```
+
+| 改动前 | 改动后 |
+|---|---|
+| 靠正则抠 JSON（`_parse_json_response` 三级兜底） | `response_format` 保证语法合法 + pydantic 校验字段 |
+| 解析失败返回 `{"error":...}` 伪数据 | 抛 `StructuredOutputError`，显式降级 |
+| `is_emergency` 默认 `False`（漏判） | 失败 fail-closed，升级急症 |
+| 分诊 `urgency` 默认 `"normal"` | 失败默认 `"emergency"` |
 
 ## 检索增强对比 (28,585 chunks, 双轨评测)
 

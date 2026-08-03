@@ -9,6 +9,7 @@ from loguru import logger
 from app.services.llm_service import llm_service
 from app.services.rag_service import rag_service
 from app.config import settings
+from app.schemas.structured_output import StructuredOutputError
 
 
 class MedicalAgent:
@@ -175,14 +176,29 @@ class MedicalAgent:
         # Step A: 症状分析 - 从用户消息中提取结构化症状
         yield {"type": "status", "content": "正在分析您的症状...", "metadata": {"step": "symptom_analysis"}}
 
-        symptom_result = await llm_service.analyze_symptoms(user_message)
+        try:
+            symptom_result = await llm_service.analyze_symptoms(user_message)
+        except StructuredOutputError:
+            logger.warning(
+                f"[Agent] Symptom analysis structured output failed "
+                f"→ fail-closed to emergency. message: {user_message[:100]}"
+            )
+            yield {
+                "type": "emergency",
+                "content": "⚠️ 根据您的描述，这可能属于紧急情况！请立即前往医院急诊科就诊或拨打120。",
+                "metadata": {"urgency": "emergency"}
+            }
+            return
 
-        if "symptoms" in symptom_result:
-            self.collected_symptoms.extend(symptom_result["symptoms"])
+        # 正常路径：pydantic 属性访问
+        if symptom_result.symptoms:
+            self.collected_symptoms.extend([
+                s.model_dump() for s in symptom_result.symptoms
+            ])
+
+        is_emergency = symptom_result.is_emergency
 
         # ===== 第 2 层：LLM 调用后关键词兜底 =====
-        is_emergency = symptom_result.get("is_emergency", False)
-
         if not is_emergency:
             fallback_hit = self._check_emergency_keywords(user_message)
             if fallback_hit:
@@ -203,7 +219,7 @@ class MedicalAgent:
             return
 
         # Step B: 检查是否需要追问
-        missing_info = symptom_result.get("missing_info", [])
+        missing_info = symptom_result.missing_info
         self.symptom_collection_round += 1
 
         if missing_info and self.symptom_collection_round < self.max_collection_rounds:
@@ -254,7 +270,19 @@ class MedicalAgent:
         # 分诊
         yield {"type": "status", "content": "正在分析分诊建议...", "metadata": {"step": "triage"}}
 
-        triage_result = await llm_service.triage(self.collected_symptoms)
+        try:
+            triage_result = await llm_service.triage(self.collected_symptoms)
+            triage_urgency = triage_result.urgency
+            triage_department = triage_result.department
+            triage_reasoning = triage_result.reasoning
+        except StructuredOutputError:
+            logger.warning(
+                f"[Agent] Triage structured output failed → fail-closed to emergency. "
+                f"symptoms: {symptoms_desc[:100]}"
+            )
+            triage_urgency = "emergency"
+            triage_department = ""
+            triage_reasoning = ""
 
         # 生成回复
         yield {"type": "status", "content": "正在生成诊断建议...", "metadata": {"step": "generating"}}
@@ -277,17 +305,15 @@ class MedicalAgent:
             full_response += token
             yield {"type": "token", "content": token}
 
-        # 发送分诊信息
-        if triage_result and "urgency" in triage_result:
-            yield {
-                "type": "triage",
-                "content": "",
-                "metadata": {
-                    "urgency": triage_result.get("urgency", "normal"),
-                    "department": triage_result.get("department", ""),
-                    "reasoning": triage_result.get("reasoning", ""),
-                }
+        yield {
+            "type": "triage",
+            "content": "",
+            "metadata": {
+                "urgency": triage_urgency,
+                "department": triage_department,
+                "reasoning": triage_reasoning,
             }
+        }
 
         # 完成
         yield {
@@ -375,13 +401,13 @@ class MedicalAgent:
 
     # ==================== 分诊决策 ====================
 
-    async def triage(self, symptoms: List[Dict]) -> Dict:
+    async def triage(self, symptoms: List[Dict]):
         """执行分诊决策"""
         return await llm_service.triage(symptoms)
 
     # ==================== 鉴别诊断 ====================
 
-    async def diagnose(self, symptoms: List[Dict]) -> Dict:
+    async def diagnose(self, symptoms: List[Dict]):
         """生成鉴别诊断建议"""
         symptoms_desc = " ".join([s.get("name", "") for s in symptoms])
         context = await rag_service.build_context(query=symptoms_desc)
