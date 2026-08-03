@@ -5,6 +5,7 @@
 # ============================================================
 import os
 import json
+import pickle
 import numpy as np
 from typing import List, Optional, Dict
 from loguru import logger
@@ -27,6 +28,10 @@ class RAGService:
         self.documents: List[str] = []       # 文档内容
         self.metadata: List[Dict] = []       # 文档元数据
         self._dimension = None  # 从第一次 embedding 自动探测
+        self._bm25 = None       # BM25Index (lazy init)
+        self._bm25_k1 = 1.2     # BM25 TF 饱和参数
+        self._bm25_b = 0.75     # BM25 长度归一化参数
+        self._use_stopwords = True
 
     @staticmethod
     def _cuda_available() -> bool:
@@ -198,8 +203,129 @@ class RAGService:
 
         return embeddings
 
-    def _save_index(self):
-        """持久化保存FAISS索引和文档"""
+    # ==================== 真 BM25 检索 ====================
+
+    # --- 中文停用词表（精简版，覆盖最高频无意义词）---
+    _STOPWORDS: set = None
+
+    @classmethod
+    def _get_stopwords(cls) -> set:
+        if cls._STOPWORDS is not None:
+            return cls._STOPWORDS
+        cls._STOPWORDS = {
+            "的", "了", "在", "是", "我", "有", "和", "就", "不", "人", "都", "一",
+            "一个", "上", "也", "很", "到", "说", "要", "去", "你", "会", "着",
+            "没有", "看", "好", "自己", "这", "他", "她", "它", "们", "那", "些",
+            "所", "为", "所以", "因为", "但是", "然而", "不过", "如果", "虽然",
+            "可以", "这个", "那个", "什么", "怎么", "哪", "吗", "啊", "哦", "吧",
+            "呢", "能", "能够", "可能", "应该", "需要", "可以", "会", "该", "等",
+            "及", "或", "且", "与", "从", "以", "之", "其", "被", "把", "让",
+            "对", "向", "往", "朝", "由", "沿", "按", "按照", "根据", "用",
+            "中", "里", "外", "内", "前", "后", "左", "右", "上", "下",
+            "还", "更", "最", "非常", "比较", "真", "太", "极", "很",
+            "只", "仅", "光", "单", "就", "才", "刚", "已", "曾经", "将",
+            "正在", "一直", "总是", "还是", "只是", "除了", "包括",
+        }
+        return cls._STOPWORDS
+
+    @staticmethod
+    def _tokenize(text: str, use_stopwords: bool = True) -> List[str]:
+        """jieba 中文分词 + 可选停用词过滤。"""
+        try:
+            import jieba
+        except ImportError:
+            # fallback to character-level
+            return list(text)
+        tokens = jieba.lcut(text)
+        if not use_stopwords:
+            return [t.strip() for t in tokens if t.strip()]
+        stopwords = RAGService._get_stopwords()
+        return [t.strip() for t in tokens
+                if t.strip() and t.strip() not in stopwords]
+
+    def _build_bm25(self, force: bool = False):
+        """构建/加载 BM25 索引（pickle 持久化）。"""
+        if self._bm25 is not None and not force:
+            return
+
+        import hashlib
+        from rank_bm25 import BM25Okapi
+
+        # 用 documents 内容哈希判断是否需要重建
+        doc_hash = hashlib.sha256(
+            "".join(self.documents[-100:]).encode()
+        ).hexdigest()[:12]
+
+        bm25_path = os.path.join(settings.FAISS_INDEX_PATH, "bm25_index.pkl")
+        bm25_hash_path = os.path.join(settings.FAISS_INDEX_PATH, "bm25_hash.txt")
+
+        # 尝试加载缓存
+        if not force and os.path.exists(bm25_path) and os.path.exists(bm25_hash_path):
+            try:
+                with open(bm25_hash_path, "r") as f:
+                    cached_hash = f.read().strip()
+                if cached_hash == doc_hash:
+                    with open(bm25_path, "rb") as f:
+                        self._bm25 = pickle.load(f)
+                    logger.info(f"BM25 index loaded from cache ({len(self.documents)} docs)")
+                    return
+            except Exception:
+                pass
+
+        # 重建
+        tokenized = [
+            self._tokenize(doc, self._use_stopwords)
+            for doc in self.documents
+        ]
+        self._bm25 = BM25Okapi(tokenized, k1=self._bm25_k1, b=self._bm25_b)
+
+        # 持久化
+        try:
+            with open(bm25_path, "wb") as f:
+                pickle.dump(self._bm25, f)
+            with open(bm25_hash_path, "w") as f:
+                f.write(doc_hash)
+        except Exception as e:
+            logger.warning(f"BM25 cache save failed: {e}")
+
+        logger.info(f"BM25 index built ({len(self.documents)} docs, "
+                     f"k1={self._bm25_k1}, b={self._bm25_b})")
+
+    def _bm25_search(self, query: str, top_k: int, threshold: float = 0.0) -> List[Dict]:
+        """真 BM25 检索 — jieba 分词 + IDF + TF饱和 + 长度归一。"""
+        if not self.documents:
+            return []
+
+        self._build_bm25()
+        tokenized_query = self._tokenize(query, self._use_stopwords)
+        scores = self._bm25.get_scores(tokenized_query)
+
+        # scores 是原始 BM25 分数（≥0），用 sigmoid 归一化到 (0,1) 便于与稠密分数比较
+        # 注意: 此分数仅用于 threshold 过滤, RRF 融合只用排名
+        def _sigmoid(x): return 1.0 / (1.0 + np.exp(-x))
+        norm_scores = _sigmoid(scores / (np.std(scores) + 1e-8))
+
+        results = []
+        # 取 top_k*2 候选再排序（BM25 get_scores 已排序？不，需要自己取 top）
+        top_indices = np.argsort(scores)[::-1][:top_k * 2]
+        for idx in top_indices:
+            score = float(norm_scores[idx])
+            if threshold > 0 and score < threshold:
+                continue
+            if idx >= len(self.metadata):
+                continue
+            meta = self.metadata[idx]
+            results.append({
+                "content": self.documents[idx],
+                "score": score,
+                "method": "bm25",
+                "index": int(idx),
+                "category": meta.get("category", ""),
+                "title": meta.get("title", ""),
+                "source": meta.get("source", ""),
+            })
+
+        return sorted(results, key=lambda x: x["score"], reverse=True)[:top_k]
         os.makedirs(settings.FAISS_INDEX_PATH, exist_ok=True)
         index_path = os.path.join(settings.FAISS_INDEX_PATH, "medical.index")
         docs_path = os.path.join(settings.FAISS_INDEX_PATH, "documents.json")
@@ -278,8 +404,8 @@ class RAGService:
         # Step 2: 稠密检索 - FAISS向量相似度
         dense_results = await self._dense_search(expanded_query, top_k * 2, score_threshold)
 
-        # Step 3: 稀疏检索 - 关键词匹配
-        sparse_results = self._sparse_search(query, top_k * 2, score_threshold)
+        # Step 3: 稀疏检索 - BM25关键词 (真 BM25: jieba分词 + IDF + TF饱和 + 长度归一)
+        sparse_results = self._bm25_search(query, top_k * 2, score_threshold)
 
         # Step 4: RRF融合排序
         fused = self._rrf_fusion(dense_results, sparse_results, top_k)

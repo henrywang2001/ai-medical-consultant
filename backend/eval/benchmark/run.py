@@ -415,9 +415,22 @@ async def main(config_name: str = "baseline", verbose: bool = False):
     name = cfg.get("name", config_name)
     desc = cfg.get("description", "")
 
+    # 应用 BM25 参数到 rag_service
+    if "bm25_k1" in params:
+        rag_service._bm25_k1 = params["bm25_k1"]
+    if "bm25_b" in params:
+        rag_service._bm25_b = params["bm25_b"]
+    if "use_stopwords" in params:
+        rag_service._use_stopwords = params["use_stopwords"]
+    # force rebuild BM25 on parameter change
+    rag_service._bm25 = None
+
     print("=" * 60)
     print(f"评测配置: {name}")
     print(f"参数: top_k={top_k}, score_threshold={score_threshold}")
+    if "bm25_k1" in params:
+        print(f"  BM25: k1={params.get('bm25_k1')}, b={params.get('bm25_b')}, "
+              f"stopwords={params.get('use_stopwords')}")
     print("=" * 60)
 
     # --- 合成集 ---
