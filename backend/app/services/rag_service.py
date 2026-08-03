@@ -249,7 +249,7 @@ class RAGService:
         self,
         query: str,
         top_k: int = None,
-        score_threshold: float = 0.0,
+        score_threshold: float = None,
         category: Optional[str] = None,
     ) -> List[Dict]:
         """
@@ -265,6 +265,9 @@ class RAGService:
         if top_k is None:
             top_k = settings.TOP_K_RETRIEVAL
 
+        if score_threshold is None:
+            score_threshold = settings.SCORE_THRESHOLD
+
         if self.index is None or self.index.ntotal == 0:
             return []
 
@@ -272,10 +275,10 @@ class RAGService:
         expanded_query = await self._expand_query(query)
 
         # Step 2: 稠密检索 - FAISS向量相似度
-        dense_results = await self._dense_search(expanded_query, top_k * 2)
+        dense_results = await self._dense_search(expanded_query, top_k * 2, score_threshold)
 
         # Step 3: 稀疏检索 - 关键词匹配
-        sparse_results = self._sparse_search(query, top_k * 2)
+        sparse_results = self._sparse_search(query, top_k * 2, score_threshold)
 
         # Step 4: RRF融合排序
         fused = self._rrf_fusion(dense_results, sparse_results, top_k)
@@ -286,7 +289,7 @@ class RAGService:
 
         return fused[:top_k]
 
-    async def _dense_search(self, query: str, top_k: int) -> List[Dict]:
+    async def _dense_search(self, query: str, top_k: int, threshold: float = 0.0) -> List[Dict]:
         """稠密检索 - FAISS向量搜索"""
         query_vec = await self._embed_texts([query])
         query_vec = np.array(query_vec).astype("float32")
@@ -298,6 +301,8 @@ class RAGService:
             if idx < len(self.documents) and idx >= 0:
                 # Convert L2 distance to similarity score
                 score = 1.0 / (1.0 + float(dist))
+                if threshold > 0 and score < threshold:
+                    continue
                 meta = self.metadata[idx] if idx < len(self.metadata) else {}
                 results.append({
                     "content": self.documents[idx],
@@ -311,7 +316,7 @@ class RAGService:
 
         return sorted(results, key=lambda x: x["score"], reverse=True)
 
-    def _sparse_search(self, query: str, top_k: int) -> List[Dict]:
+    def _sparse_search(self, query: str, top_k: int, threshold: float = 0.0) -> List[Dict]:
         """稀疏检索 - BM25关键词匹配风格"""
         query_terms = set(query)
         scored = []
@@ -322,6 +327,8 @@ class RAGService:
             matches = sum(1 for term in query_terms if term in doc_lower)
             if matches > 0:
                 score = matches / len(query_terms)
+                if threshold > 0 and score < threshold:
+                    continue
                 meta = self.metadata[i] if i < len(self.metadata) else {}
                 scored.append({
                     "content": doc,

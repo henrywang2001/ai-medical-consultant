@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 50
     CHUNK_MIN_SIZE: int = 50  # 丢弃小于此长度的尾块
     TOP_K_RETRIEVAL: int = 5
+    SCORE_THRESHOLD: float = 0.2  # 稠密检索最低相似度，低于此值的文档不进 RRF 融合
 
     class Config:
         env_file = ".env"
