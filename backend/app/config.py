@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     MEDICAL_KB_PATH: str = "./data/medical_kb"
     CHUNK_SIZE: int = 512
     CHUNK_OVERLAP: int = 50
+    CHUNK_MIN_SIZE: int = 50  # 丢弃小于此长度的尾块
     TOP_K_RETRIEVAL: int = 5
 
     class Config:

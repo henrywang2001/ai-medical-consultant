@@ -10,7 +10,6 @@ from app.models.database import KnowledgeDocument, User, get_db
 from app.models.schemas import KnowledgeCreate, KnowledgeSearch, KnowledgeResponse
 from app.services.rag_service import rag_service
 from app.middleware.auth import get_current_user
-from app.config import settings
 
 router = APIRouter(prefix="/api/v1/knowledge", tags=["知识库"])
 
@@ -95,7 +94,6 @@ async def upload_document(
 ):
     """上传医学文档（支持PDF、Word、Markdown、TXT）"""
     import os
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
 
     # 读取文件内容
     content = await file.read()
@@ -117,36 +115,24 @@ async def upload_document(
     else:
         raise HTTPException(400, f"不支持的文件格式: {filename}")
 
-    # 文本分块
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=settings.CHUNK_SIZE,
-        chunk_overlap=settings.CHUNK_OVERLAP,
-        separators=["\n\n", "\n", "。", "！", "？", "，", " ", ""],
+    # 保存到数据库（整篇文档）
+    doc = KnowledgeDocument(
+        title=filename,
+        category=category,
+        content=text,
+        source=filename,
     )
-    chunks = splitter.split_text(text)
-
-    # 保存到数据库和向量索引
-    for i, chunk in enumerate(chunks):
-        doc = KnowledgeDocument(
-            title=f"{filename} (第{i+1}块)",
-            category=category,
-            content=chunk,
-            source=filename,
-            chunk_index=i,
-        )
-        db.add(doc)
-
+    db.add(doc)
     await db.commit()
 
-    # 批量添加到RAG
+    # 添加到RAG（rag_service.add_documents 内部统一切分）
     await rag_service.add_documents(
-        texts=chunks,
-        metadatas=[{"title": filename, "category": category, "source": filename} for _ in chunks],
+        texts=[text],
+        metadatas=[{"title": filename, "category": category, "source": filename}],
     )
 
     return {
         "message": f"文档 {filename} 已处理",
-        "chunks": len(chunks),
         "total_docs": rag_service.document_count,
     }
 

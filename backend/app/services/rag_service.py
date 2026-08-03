@@ -131,6 +131,24 @@ class RAGService:
         if not deduped_texts:
             return 0
 
+        # Step 0.5: 文本切分（统一入口，所有调用路径共用 CHUNK_SIZE/OVERLAP）
+        from langchain.text_splitter import RecursiveCharacterTextSplitter
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=settings.CHUNK_SIZE,
+            chunk_overlap=settings.CHUNK_OVERLAP,
+            separators=["\n\n", "\n", "。", "！", "？", "，", " ", ""],
+        )
+        chunked_texts = []
+        chunked_metas = []
+        for text, meta in zip(deduped_texts, deduped_metas):
+            chunks = splitter.split_text(text)
+            for ci, chunk in enumerate(chunks):
+                if len(chunk) < settings.CHUNK_MIN_SIZE:
+                    continue
+                chunked_texts.append(chunk)
+                chunked_metas.append({**meta, "chunk_index": ci, "chunk_count": len(chunks)})
+        deduped_texts, deduped_metas = chunked_texts, chunked_metas
+
         # Step 1: 文本向量化
         embeddings = await self._embed_texts(deduped_texts)
         embeddings = np.array(embeddings).astype("float32")
