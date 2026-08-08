@@ -2,8 +2,8 @@
 # AI Medical Consultant - Knowledge Base Router
 # ============================================================
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.database import KnowledgeDocument, User, get_db
@@ -26,7 +26,7 @@ async def add_knowledge(
         title=data.title,
         category=data.category,
         content=data.content,
-        source=data.source,
+        source=data.source or "",
     )
     db.add(doc)
     await db.commit()
@@ -38,7 +38,7 @@ async def add_knowledge(
         metadatas=[{
             "title": data.title,
             "category": data.category,
-            "source": data.source,
+            "source": data.source or "",
         }],
     )
 
@@ -72,17 +72,65 @@ async def search_knowledge(
 
 @router.get("/documents")
 async def list_documents(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     category: str = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """列出知识文档"""
+    """列出知识文档（支持分页和分类筛选）"""
+    # 计数查询
+    count_query = select(func.count()).select_from(KnowledgeDocument)
+    if category:
+        count_query = count_query.where(KnowledgeDocument.category == category)
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # 分页查询
     query = select(KnowledgeDocument)
     if category:
         query = query.where(KnowledgeDocument.category == category)
-    query = query.order_by(KnowledgeDocument.created_at.desc()).limit(100)
+    query = query.order_by(KnowledgeDocument.created_at.desc())
+    query = query.offset((page - 1) * page_size).limit(page_size)
 
     result = await db.execute(query)
-    return result.scalars().all()
+    items = result.scalars().all()
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
+@router.delete("/documents/{doc_id}")
+async def delete_knowledge(
+    doc_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """删除知识文档（DB + FAISS 同步删除）"""
+    result = await db.execute(
+        select(KnowledgeDocument).where(KnowledgeDocument.id == doc_id)
+    )
+    doc = result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(404, "文档不存在")
+
+    title = doc.title
+
+    # 1. 先删 DB
+    await db.delete(doc)
+    await db.commit()
+
+    # 2. 再删 FAISS（按 title 匹配）
+    removed_vectors = await rag_service.delete_by_title(title)
+
+    return {
+        "message": f"文档 '{title}' 已删除",
+        "removed_db": 1,
+        "removed_vectors": removed_vectors,
+    }
 
 
 @router.post("/upload")
@@ -150,3 +198,4 @@ async def knowledge_stats(
         "index_initialized": rag_service.index is not None,
         "vector_count": rag_service.index.ntotal if rag_service.index else 0,
     }
+

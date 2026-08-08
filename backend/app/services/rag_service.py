@@ -153,11 +153,27 @@ class RAGService:
                     continue
                 chunked_texts.append(chunk)
                 chunked_metas.append({**meta, "chunk_index": ci, "chunk_count": len(chunks)})
+            # 如果所有 chunk 都被过滤掉了（短文本），保留原文本
+            if chunks and not any(
+                c for c in chunks if len(c) >= settings.CHUNK_MIN_SIZE
+            ):
+                chunked_texts.append(text)
+                chunked_metas.append(meta)
+                logger.info(
+                    f"Short text kept as-is (len={len(text)} < CHUNK_MIN_SIZE={settings.CHUNK_MIN_SIZE}): "
+                    f"{text[:60]}..."
+                )
         deduped_texts, deduped_metas = chunked_texts, chunked_metas
+
+        if not deduped_texts:
+            logger.warning(f"All texts filtered out after chunking (min_size={settings.CHUNK_MIN_SIZE})")
+            return 0
 
         # Step 1: 文本向量化
         embeddings = await self._embed_texts(deduped_texts)
         embeddings = np.array(embeddings).astype("float32")
+        if embeddings.ndim == 1:
+            embeddings = embeddings.reshape(1, -1)
 
         # Step 2: 添加到FAISS索引
         import faiss
@@ -327,6 +343,9 @@ class RAGService:
             })
 
         return sorted(results, key=lambda x: x["score"], reverse=True)[:top_k]
+
+    def _save_index(self):
+        """保存 FAISS 索引和文档到磁盘"""
         os.makedirs(settings.FAISS_INDEX_PATH, exist_ok=True)
         index_path = os.path.join(settings.FAISS_INDEX_PATH, "medical.index")
         docs_path = os.path.join(settings.FAISS_INDEX_PATH, "documents.json")
@@ -604,12 +623,30 @@ class RAGService:
 
     # ==================== 知识库管理 ====================
 
-    async def delete_document(self, index: int):
-        """删除指定文档（需要重建索引）"""
-        if 0 <= index < len(self.documents):
-            self.documents.pop(index)
-            self.metadata.pop(index)
-            await self._rebuild_index()
+    async def delete_by_title(self, title: str) -> int:
+        """按标题删除 FAISS 向量（需重建索引）
+
+        因为 FAISS IndexFlatL2 不支持选择性删除：
+        1. 在 metadata 中按 title 匹配所有索引位置
+        2. 从 documents/metadata 列表中过滤掉
+        3. 重建整个 FAISS 索引
+        返回删除的向量数
+        """
+        to_remove = {
+            i for i, meta in enumerate(self.metadata)
+            if meta.get("title") == title
+        }
+        if not to_remove:
+            return 0
+
+        self.documents = [
+            d for i, d in enumerate(self.documents) if i not in to_remove
+        ]
+        self.metadata = [
+            m for i, m in enumerate(self.metadata) if i not in to_remove
+        ]
+        await self._rebuild_index()
+        return len(to_remove)
 
     async def _rebuild_index(self):
         """重建FAISS索引"""
